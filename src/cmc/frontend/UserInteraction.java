@@ -1,119 +1,150 @@
 package cmc.frontend;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-
 import cmc.backend.SystemController;
 import cmc.backend.User;
 
 public class UserInteraction {
-	
-	private User loggedInUser;
-	
-	private SystemController theSystemController;
-	
-	// Construct a UserInteraction using the basic (no parameter)
-	// SystemController as the single underlying controller object.
-	// TODO: Someday, we should refactor the single SystemController class
-	//       into multiple classes for better organization of functionalities.
-	public UserInteraction() {
-		this.theSystemController = new SystemController();
-		this.loggedInUser = null;
-	}
+    private User loggedInUser;
+    private SystemController theSystemController;
+    
+    public UserInteraction() {
+        this.theSystemController = new SystemController();
+        this.loggedInUser = null;
+    }
 
-	// attempt to login, print message, and return success or failure
-	public boolean login(String username, String password) {
-		User result = this.theSystemController.login(username, password);
-		if (result != null) {
-			System.out.println("Login successful!");
-			this.loggedInUser = result;
-			return true;
-		}
-		else {
-			System.out.println("Login failed!  Incorrect username or password.");
-			this.loggedInUser = null;
-			return false;
-		}
-	}
-	
-	// returns true if there is a user to log out, otherwise false
-	public boolean logout() {
-		if (this.loggedInUser == null) {
-			return false;
-		}
-		else {
-			this.loggedInUser = null;
-			return true;
-		}
-	}
-	
-	// for admins, this gets the list of all users in the system
-	public List<String[]> getAllUsers() {
-		return this.theSystemController.getAllUsers();
-	}
-	
-	// ask the admin for details and then attempt to add a user to the
-	// database
-	public boolean addUser(Scanner s) {
-		System.out.print("Username: ");
-		String username = s.nextLine();
-		System.out.print("Password: ");
-		String password = s.nextLine();
-		System.out.print("First Name: ");
-		String firstName = s.nextLine();
-		System.out.print("Last Name: ");
-		String lastName = s.nextLine();
-		System.out.print("Admin? (Y or N): ");
-		boolean isAdmin = false;
-		if (s.nextLine().trim().equalsIgnoreCase("y"))
-			isAdmin = true;
-		
-		return this.theSystemController.addUser(username, password, firstName, lastName, isAdmin);
-	}
-	
-	// ask the admin for a username and then remove that user from the
-	// database
-	public boolean removeUser(Scanner s) {
-		System.out.print("Username: ");
-		String username = s.nextLine();
+    public boolean login(String username, String password) {
+        User result = this.theSystemController.login(username, password);
+        if (result != null) {
+            System.out.println("Login successful!");
+            this.loggedInUser = result;
+            return true;
+        } else {
+            if (this.theSystemController.userExists(username)) {
+                if (!this.theSystemController.isUserActive(username)) {
+                    System.out.println("Login failed! Account is deactivated.");
+                } else {
+                    System.out.println("Login failed! Incorrect password.");
+                }
+            } else {
+                System.out.println("Login failed! User not found.");
+            }
+            this.loggedInUser = null;
+            return false;
+        }
+    }
+    
+    public boolean logout() {
+        if (this.loggedInUser == null) {
+            return false;
+        }
+        this.loggedInUser = null;
+        return true;
+    }
+    
+    public List<String[]> getAllUsers() {
+        if (!isAdmin()) {
+            System.out.println("Error: Admin privileges required");
+            return new ArrayList<>();
+        }
+        return this.theSystemController.getAllUsers();
+    }
+    
+    public boolean addUser(Scanner s) {
+        if (!isAdmin()) {
+            System.out.println("Error: Admin privileges required");
+            return false;
+        }
+        
+        System.out.print("Username: ");
+        String username = s.nextLine().trim();
+        System.out.print("Password: ");
+        String password = s.nextLine().trim();
+        System.out.print("First Name: ");
+        String firstName = s.nextLine().trim();
+        System.out.print("Last Name: ");
+        String lastName = s.nextLine().trim();
+        System.out.print("Admin? (Y or N): ");
+        boolean isAdmin = s.nextLine().trim().equalsIgnoreCase("y");
+        
+        return this.theSystemController.addUser(username, password, firstName, lastName, isAdmin);
+    }
+    
+    public boolean removeUser(Scanner s) {
+        if (!isAdmin()) {
+            System.out.println("Error: Admin privileges required");
+            return false;
+        }
+        
+        System.out.print("Username: ");
+        String username = s.nextLine().trim();
+        return this.theSystemController.removeUser(username);
+    }
 
-		return this.theSystemController.removeUser(username);
-	}
-	
-	public List<String[]> search(Scanner s) {
-		// TODO: in the future, we would like to support searching by various
-		//       criteria, but we'll settle for just state for now
-		System.out.print("State (leave blank to not search by this criterion): ");
-		String state = s.nextLine();
-		
-		return this.theSystemController.search(state);
-	}
-	
-	// ask for a school name to save, and attempt to save that school
-	// to the list for the currently-logged-in user
-	public boolean saveSchool(Scanner s) {
-		System.out.print("School Name: ");
-		String schoolName = s.nextLine();
+    public boolean deactivateUser(String username) {
+        if (!isAdmin()) {
+            System.out.println("Error: Admin privileges required");
+            return false;
+        }
+        
+        if (username == null || username.trim().isEmpty()) {
+            System.out.println("Error: Username cannot be empty");
+            return false;
+        }
+        
+        return this.theSystemController.deactivateUser(username.trim());
+    }
+    
+    public List<String[]> search(Scanner s) {
+        System.out.print("State (leave blank to see all schools): ");
+        String state = s.nextLine().trim();
+        return this.theSystemController.search(state);
+    }
+    
+    public boolean saveSchool(Scanner s) {
+        if (this.loggedInUser == null) {
+            System.out.println("Error: Must be logged in to save schools");
+            return false;
+        }
+        
+        System.out.print("School Name: ");
+        String schoolName = s.nextLine().trim();
+        return this.theSystemController.saveSchool(this.loggedInUser.getUsername(), schoolName);
+    }
+    
+    public boolean removeSchool(String schoolName) {
+        if (this.loggedInUser == null) {
+            System.out.println("Error: Must be logged in to remove schools");
+            return false;
+        }
+        
+        if (schoolName == null || schoolName.trim().isEmpty()) {
+            System.out.println("Error: School name cannot be empty");
+            return false;
+        }
+        
+        return this.theSystemController.removeSchool(
+            this.loggedInUser.getUsername(), schoolName.trim());
+    }
+    
+    public List<String> getSavedSchools() {
+        if (this.loggedInUser == null) {
+            System.out.println("Error: Must be logged in to view saved schools");
+            return new ArrayList<>();
+        }
+        
+        List<String> schools = this.theSystemController.getSavedSchools(
+            this.loggedInUser.getUsername());
+        return schools != null ? schools : new ArrayList<>();
+    }
 
-		if (this.loggedInUser == null)
-			return false;
-		else
-			return this.theSystemController.saveSchool(this.loggedInUser.username, schoolName);
-	}
-	
-	// get the list of saved school names for the currently-logged-in user
-	public List<String> getSavedSchools() {
-		return this.theSystemController.getSavedSchools(this.loggedInUser.username);
-	}
+    public User getLoggedInUser() {
+        return this.loggedInUser;
+    }
 
-	/**
-	 * Get the current username for the current user logged in via
-	 * this UserInteraction class.
-	 * 
-	 * @return the username for the logged in user
-	 */
-	public User getLoggedInUser() {
-		return this.loggedInUser;
-	}
-
+    private boolean isAdmin() {
+        return this.loggedInUser != null && this.loggedInUser.isAdmin();
+    }
 }

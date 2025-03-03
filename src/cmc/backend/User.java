@@ -1,106 +1,179 @@
 package cmc.backend;
 
+/**
+ * Represents a user in the CMC system.
+ * A user can be either an admin (type 'a') or regular user (type 'u')
+ * and can be either activated ('Y') or deactivated ('N').
+ */
 public class User {
-	public String username;
-	public String password;
-	public char type; // u or a
-	public String firstName;
-	public String lastName;
-	public char activated; // Y or N
+    // Constants for user types and activation status
+    public static final char ADMIN_TYPE = 'a';
+    public static final char USER_TYPE = 'u';
+    public static final char ACTIVATED = 'Y';
+    public static final char DEACTIVATED = 'N';
+    
+    // Changed to private with getters/setters for better encapsulation
+    private String username;
+    private String password;
+    private char type;     // u or a
+    private String firstName;
+    private String lastName;
+    private char activated; // Y or N
 
-	public User(String username, String password, char type, String firstName,
-			String lastName) {
-		this.username = username;
-		this.password = password;
-		this.type = type;
-		this.firstName = firstName;
-		this.lastName = lastName;
-		this.activated = 'Y'; // users always start activated
-	}
-	
-	/**
-	 * @return the username
-	 */
-	public String getUsername() {
-		// NOTE: we cannot modify the username, since this is the core
-		// "id" for users in the database (and must be unique)
-		return username;
-	}
+    /**
+     * Constructs a new User with the given parameters.
+     * New users are always activated by default.
+     * 
+     * @param username the unique username for this user
+     * @param password the user's password
+     * @param type the user type (must be 'a' for admin or 'u' for regular user)
+     * @param firstName the user's first name
+     * @param lastName the user's last name
+     * @throws IllegalArgumentException if type is invalid or any parameter is null/empty
+     */
+    public User(String username, String password, char type, String firstName, String lastName) {
+        // Validate input parameters
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be null or empty");
+        }
+        if (firstName == null || firstName.trim().isEmpty()) {
+            throw new IllegalArgumentException("First name cannot be null or empty");
+        }
+        if (lastName == null || lastName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name cannot be null or empty");
+        }
+        if (type != ADMIN_TYPE && type != USER_TYPE) {
+            throw new IllegalArgumentException("Invalid user type: must be 'a' or 'u'");
+        }
 
-	/**
-	 * @return the password
-	 */
-	public String getPassword() {
-		return password;
-	}
+        this.username = username.trim();
+        this.password = password.trim();
+        this.type = type;
+        this.firstName = firstName.trim();
+        this.lastName = lastName.trim();
+        this.activated = ACTIVATED; // users always start activated
+    }
 
-	/**
-	 * @param password the password to set
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    /**
+     * @return the username (cannot be modified as it's the unique identifier)
+     */
+    public String getUsername() {
+        return username;
+    }
 
-	/**
-	 * @return the type
-	 */
-	public char getType() {
-		return type;
-	}
+    /**
+     * @return the password
+     */
+    public String getPassword() {
+        return password;
+    }
 
-	/**
-	 * @param type the type to set
-	 */
-	public void setType(char type) {
-		this.type = type;
-	}
-	
-	// return true if the user is an admin ('a') type,
-	// or false otherwise
-	public boolean isAdmin() {
-		return (type == 'a');
-	}
+    /**
+     * @param password the password to set
+     * @throws IllegalArgumentException if password is null or empty
+     */
+    public void setPassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be null or empty");
+        }
+        this.password = password.trim();
+    }
 
-	/**
-	 * @return the firstName
-	 */
-	public String getFirstName() {
-		return firstName;
-	}
+    /**
+     * @return the user type ('a' for admin, 'u' for regular user)
+     */
+    public char getType() {
+        return type;
+    }
 
-	/**
-	 * @param firstName the firstName to set
-	 */
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
+    /**
+     * @param type the type to set ('a' for admin, 'u' for regular user)
+     * @throws IllegalArgumentException if type is invalid
+     */
+    public void setType(char type) {
+        if (type != ADMIN_TYPE && type != USER_TYPE) {
+            throw new IllegalArgumentException("Invalid user type: must be 'a' or 'u'");
+        }
+        this.type = type;
+    }
 
-	/**
-	 * @return the lastName
-	 */
-	public String getLastName() {
-		return lastName;
-	}
+    /**
+     * @return true if the user is an admin ('a' type), false otherwise
+     */
+    public boolean isAdmin() {
+        return type == ADMIN_TYPE;
+    }
 
-	/**
-	 * @param lastName the lastName to set
-	 */
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
-	}
+    /**
+     * @return the user's first name
+     */
+    public String getFirstName() {
+        return firstName;
+    }
 
-	/**
-	 * @return the activated
-	 */
-	public char getActivated() {
-		return activated;
-	}
+    /**
+     * @param firstName the first name to set
+     * @throws IllegalArgumentException if firstName is null or empty
+     */
+    public void setFirstName(String firstName) {
+        if (firstName == null || firstName.trim().isEmpty()) {
+            throw new IllegalArgumentException("First name cannot be null or empty");
+        }
+        this.firstName = firstName.trim();
+    }
 
-	/**
-	 * @param activated the activated to set
-	 */
-	public void setActivated(char activated) {
-		this.activated = activated;
-	}
+    /**
+     * @return the user's last name
+     */
+    public String getLastName() {
+        return lastName;
+    }
 
+    /**
+     * @param lastName the last name to set
+     * @throws IllegalArgumentException if lastName is null or empty
+     */
+    public void setLastName(String lastName) {
+        if (lastName == null || lastName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name cannot be null or empty");
+        }
+        this.lastName = lastName.trim();
+    }
+
+    /**
+     * @return the activation status ('Y' for activated, 'N' for deactivated)
+     */
+    public char getActivated() {
+        return activated;
+    }
+
+    /**
+     * @param activated the activation status to set ('Y' for activated, 'N' for deactivated)
+     * @throws IllegalArgumentException if activation status is invalid
+     */
+    public void setActivated(char activated) {
+        if (activated != ACTIVATED && activated != DEACTIVATED) {
+            throw new IllegalArgumentException("Invalid activation status: must be 'Y' or 'N'");
+        }
+        this.activated = activated;
+    }
+
+    /**
+     * @return true if the user is currently activated, false otherwise
+     */
+    public boolean isActivated() {
+        return activated == ACTIVATED;
+    }
+
+    /**
+     * @return string representation of the User object (excluding sensitive information)
+     */
+    @Override
+    public String toString() {
+        return String.format("User[username=%s, type=%c, firstName=%s, lastName=%s, activated=%c]",
+                           username, type, firstName, lastName, activated);
+    }
 }

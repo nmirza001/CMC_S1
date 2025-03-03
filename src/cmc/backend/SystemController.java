@@ -6,101 +6,190 @@ import java.util.Map;
 
 import cmc.CMCException;
 
+/**
+ * The SystemController class provides the main business logic for the CMC system,
+ * coordinating between the user interface and database operations.
+ */
 public class SystemController {
-	private DatabaseController myDBController;
-	
-	// Construct a SystemController using the basic (no parameter)
-	// DatabaseController as the underlying database access.
-	public SystemController() {
-		this.myDBController = new DatabaseController();
-	}
-	
-	/**
-	 * Verify whether the username and password provided match a user in the
-	 * database.  Return a Boolean indicating yes or no.
-	 * 
-	 * TODO: how could we distinguish a DB error from a failed login?
-	 * 
-	 * @param username the username to check
-	 * @param password the password to check for matching the username
-	 * @return the matching User object if the username and password match
-	 * a database entry, or null otherwise
-	 */
-	public User login(String username, String password) {
-		String[] userData = this.myDBController.getUser(username);
-		if (userData == null)
-			return null;
-		
-		User theUser = new User(userData[2], userData[3], userData[4].charAt(0), userData[0],
-				userData[1]);
-		
-		if (theUser.activated != 'Y' || !theUser.password.equals(password)) {
-			return null;
-		}
-		else {
-			return theUser;
-		}
-	}
+    private static final int USER_FIRST_NAME_INDEX = 0;
+    private static final int USER_LAST_NAME_INDEX = 1;
+    private static final int USER_USERNAME_INDEX = 2;
+    private static final int USER_PASSWORD_INDEX = 3;
+    private static final int USER_TYPE_INDEX = 4;
+    private static final int USER_ACTIVATION_INDEX = 5;
+    private static final int SCHOOL_NAME_INDEX = 0;
+    private static final int SCHOOL_STATE_INDEX = 1;
+    
+    private DatabaseController myDBController;
+    
+    public SystemController() {
+        this.myDBController = new DatabaseController();
+    }
 
-	// this ADMIN ONLY method returns the list of all the users (and their data)
-	// TODO: shouldn't this return a List of User objects?
-	public List<String[]> getAllUsers() {
-		List<String[]> usersList = this.myDBController.getAllUsers();
-		return usersList;
-	}
-	
-	// this ADMIN ONLY method attempts to add a user to the database with the
-	// provided details
-	public boolean addUser(String username, String password,
-			String firstName, String lastName, boolean isAdmin) {
-		char type = (isAdmin ? 'a' : 'u');
-		try {
-			return this.myDBController.addUser(username, password, type, firstName, lastName);
-		} catch (CMCException e) {
-			// TODO: should we let the calling class report the error more
-			//       clearly by passing it on?
-			return false;
-		}
-	}
-	
-	// this ADMIN ONLY method attempts to remove a user from the database
-	// based on the provided username
-	public boolean removeUser(String username) {
-		try {
-			return this.myDBController.removeUser(username);
-		} catch (CMCException e) {
-			// TODO: should we let the calling class report the error more
-			//       clearly by passing it on?
-			return false;
-		}
-	}
-	
-	// this REGULAR USER ONLY method searches for schools in the database
-	// based on provided criteria (just state for now)
-	public List<String[]> search(String state) {
-		List<String[]> schoolList = this.myDBController.getAllSchools();
-		
-		List<String[]> filteredList = new ArrayList<String[]>();
-		for (int i = 0; i < schoolList.size(); i++) {
-			String[] school = schoolList.get(i);
-			if (school[1].equals(state) || school[1] == "")
-				filteredList.add(school);
-		}
-		
-		return filteredList;
-	}
-	
-	// this REGULAR USER ONLY method attempts to add the provided school
-	// to the list of saved schools for the provided username
-	public boolean saveSchool(String user, String school) {
-		return this.myDBController.saveSchool(user, school);
-	}
-	
-	// this REGULAR USER ONLY method attempts to retrieve the list of saved
-	// schools for the provided username
-	public List<String> getSavedSchools(String user) {
-		Map<String, List<String>> usersToSavedSchools = this.myDBController.getUserSavedSchoolMap();
-		return usersToSavedSchools.get(user);
-	}
+    public boolean userExists(String username) {
+        return this.myDBController.getUser(username) != null;
+    }
 
+    public boolean isUserActive(String username) {
+        return this.myDBController.isUserActive(username);
+    }
+    
+    public String[] getUser(String username) {
+        return this.myDBController.getUser(username);
+    }
+    
+    public User login(String username, String password) {
+        if (username == null || username.trim().isEmpty() || 
+            password == null || password.trim().isEmpty()) {
+            return null;
+        }
+
+        String[] userData = this.myDBController.getUser(username);
+        if (userData == null) {
+            return null;
+        }
+        
+        User theUser = new User(
+            userData[USER_USERNAME_INDEX],
+            userData[USER_PASSWORD_INDEX],
+            userData[USER_TYPE_INDEX].charAt(0),
+            userData[USER_FIRST_NAME_INDEX],
+            userData[USER_LAST_NAME_INDEX]
+        );
+        
+        theUser.setActivated(userData[USER_ACTIVATION_INDEX].charAt(0));
+        
+        if (theUser.getActivated() != 'Y' || !theUser.getPassword().equals(password)) {
+            return null;
+        }
+        
+        return theUser;
+    }
+
+    public List<String[]> getAllUsers() {
+        return this.myDBController.getAllUsers();
+    }
+    
+    public boolean addUser(String username, String password,
+            String firstName, String lastName, boolean isAdmin) {
+        if (username == null || username.trim().isEmpty() ||
+            password == null || password.trim().isEmpty() ||
+            firstName == null || firstName.trim().isEmpty() ||
+            lastName == null || lastName.trim().isEmpty()) {
+            System.out.println("Error adding user: All fields must be filled");
+            return false;
+        }
+
+        char type = (isAdmin ? 'a' : 'u');
+        try {
+            return this.myDBController.addUser(username, password, type, firstName, lastName);
+        } catch (CMCException e) {
+            System.out.println("Error adding user: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean removeUser(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            System.out.println("Error removing user: Username cannot be empty");
+            return false;
+        }
+        
+        try {
+            return this.myDBController.removeUser(username);
+        } catch (CMCException e) {
+            System.out.println("Error removing user: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean deactivateUser(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            System.out.println("Error deactivating user: Username cannot be empty");
+            return false;
+        }
+        
+        try {
+            return this.myDBController.deactivateUser(username);
+        } catch (CMCException e) {
+            System.out.println("Error deactivating user: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public List<String[]> search(String state) {
+        List<String[]> schoolList = this.myDBController.getAllSchools();
+        
+        if (state == null || state.trim().isEmpty()) {
+            return schoolList;
+        }
+        
+        List<String[]> filteredList = new ArrayList<String[]>();
+        for (String[] school : schoolList) {
+            if (school[SCHOOL_STATE_INDEX].equals(state)) {
+                filteredList.add(school);
+            }
+        }
+        
+        return filteredList;
+    }
+    
+    public boolean saveSchool(String user, String school) {
+        if (user == null || user.trim().isEmpty() ||
+            school == null || school.trim().isEmpty()) {
+            System.out.println("Error saving school: Username and school name must be provided");
+            return false;
+        }
+
+        try {
+            return this.myDBController.saveSchool(user, school);
+        } catch (CMCException e) {
+            System.out.println("Error saving school: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean removeSchool(String user, String school) {
+        if (user == null || user.trim().isEmpty() ||
+            school == null || school.trim().isEmpty()) {
+            System.out.println("Error removing school: Username and school name must be provided");
+            return false;
+        }
+
+        try {
+            return this.myDBController.removeSchool(user, school);
+        } catch (CMCException e) {
+            System.out.println("Error removing saved school: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public List<String> getSavedSchools(String user) {
+        if (user == null || user.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Map<String, List<String>> usersToSavedSchools = this.myDBController.getUserSavedSchoolMap();
+        List<String> schools = usersToSavedSchools.get(user);
+        return schools != null ? schools : new ArrayList<>();
+    }
+    
+    public boolean editUser(String username, String firstName, String lastName, 
+                          String password, char type, char activated) {
+        if (username == null || username.trim().isEmpty() ||
+            firstName == null || firstName.trim().isEmpty() ||
+            lastName == null || lastName.trim().isEmpty() ||
+            password == null || password.trim().isEmpty()) {
+            System.out.println("Error editing user: All fields must be filled");
+            return false;
+        }
+
+        try {
+            return this.myDBController.editUser(username, firstName, lastName, 
+                                              password, type, activated);
+        } catch (CMCException e) {
+            System.out.println("Error editing user: " + e.getMessage());
+            return false;
+        }
+    }
 }
